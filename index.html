@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador Unidad de Control ALU 5 bits (CI 7473) — Proteus ISIS Style</title>
+  <style>
+    :root {
+      --bg-app: #0f172a;
+      --bg-panel: #1e293b;
+      --bg-card: #0b1220;
+      --border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --high: #ef4444;
+      --low: #3b82f6;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-app);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #020617;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    header h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      font-family: ui-monospace, monospace;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    button {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg-panel);
+      color: var(--text-main);
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    button:hover { border-color: var(--accent); background: #26354d; }
+    button:active { transform: translateY(1px); }
+    button.btn-primary { background: #0284c7; border-color: #38bdf8; }
+    button.btn-primary:hover { background: #0369a1; }
+    button.btn-clk { background: #15803d; border-color: #4ade80; }
+    button.btn-clk:hover { background: #166534; }
+    button.btn-warn { background: #b45309; border-color: #fbbf24; }
+    button.btn-warn:hover { background: #92400e; }
+    button.btn-danger { background: #991b1b; border-color: #f87171; }
+    button.btn-danger:hover { background: #7f1d1d; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 1fr 310px;
+      gap: 14px;
+      padding: 14px;
+      flex: 1;
+    }
+    @media (max-width: 1180px) {
+      .workspace { grid-template-columns: 1fr; }
+    }
+    .schematic-wrap {
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 2px solid #1e3a8a;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    }
+    svg#schematic {
+      width: 100%;
+      min-width: 980px;
+      height: auto;
+      display: block;
+      user-select: none;
+    }
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .card h2 {
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--accent);
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.83rem;
+    }
+    .noise-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .preset-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .preset-btn {
+      justify-content: flex-start;
+      text-align: left;
+      font-size: 0.78rem;
+      padding: 7px 9px;
+      background: var(--bg-card);
+    }
+    .preset-btn.active {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.14);
+    }
+    .eq-box {
+      font-family: ui-monospace, 'Cascadia Code', monospace;
+      font-size: 0.76rem;
+      background: var(--bg-card);
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      line-height: 1.55;
+      color: #cbd5e1;
+    }
+    .legend {
+      display: flex;
+      gap: 12px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>
+      <span>⚡ Unidad de Control ALU 5 bits — CI 7473 (JK Síncrono)</span>
+      <span class="badge">UCAB • Arquitectura del Computador Aplicada</span>
+    </h1>
+    <div class="toolbar">
+      <button id="btnInt" onclick="toggleInt()">INT: <span id="lblIntBtn">0</span></button>
+      <button class="btn-clk" onclick="pulseClock()">⏱ Pulso CLK (↓)</button>
+      <button class="btn-danger" onclick="resetSystem()">↺ Reset CLR' (000)</button>
+      <button class="btn-primary" onclick="exportPNG()">📸 Descargar PNG Evidencia</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <div class="schematic-wrap">
+      <svg id="schematic" viewBox="0 0 1380 790" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="gridSmall" width="16" height="16" patternUnits="userSpaceOnUse">
+            <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#dbeafe" stroke-width="0.8"/>
+          </pattern>
+          <pattern id="gridMajor" width="80" height="80" patternUnits="userSpaceOnUse">
+            <rect width="80" height="80" fill="url(#gridSmall)"/>
+            <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#bfdbfe" stroke-width="1.3"/>
+          </pattern>
+        </defs>
+
+        <!-- Proteus Grid Background -->
+        <rect x="0" y="0" width="1380" height="790" fill="#f8fafc"/>
+        <rect x="0" y="0" width="1380" height="790" fill="url(#gridMajor)"/>
+        <rect x="8" y="8" width="1364" height="774" fill="none" stroke="#1e3a8a" stroke-width="2.5"/>
+
+        <!-- Top Evidence Caption Header -->
+        <rect x="18" y="16" width="1344" height="40" rx="4" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.5"/>
+        <text id="svgCaption" x="32" y="42" font-family="monospace" font-size="16" font-weight="bold" fill="#0f172a">
+          Foto 1: Estado S_0 (Q2 Q1 Q0 = 000), Entrada INT=0, Salidas C2 C1 C0 = 000
+        </text>
+        <rect x="1110" y="22" width="242" height="28" rx="4" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.2"/>
+        <text id="svgTopBadge" x="1231" y="41" text-anchor="middle" font-family="sans-serif" font-size="12.5" font-weight="bold" fill="#1e3a8a">
+          ESTADO: S_0 • INACTIVO (I)
+        </text>
+
+        <!-- Section Headers -->
+        <g font-family="sans-serif" font-size="11.5" font-weight="bold" fill="#334155">
+          <text x="26" y="76">1. ENTRADAS Y RELOJ</text>
+          <text x="315" y="76">2. LÓGICA DE EXCITACIÓN (7404 / 7408)</text>
+          <text x="545" y="76">3. REGISTROS SÍNCRONOS (CI 7473)</text>
+          <text x="860" y="76">4. DECODIFICADOR 7-SEG (7404 / 7408 / 7432)</text>
+          <text x="1155" y="76">5. DISPLAY ÁNODO COMÚN</text>
+        </g>
+
+        <!-- Vertical Bus Labels -->
+        <g font-family="monospace" font-size="11" font-weight="bold" fill="#475569">
+          <text x="142" y="95">INT</text>
+          <text x="170" y="95">CLK</text>
+          <text x="196" y="95">CLR'</text>
+          <text x="234" y="95">Q2</text>
+          <text x="254" y="95">Q2'</text>
+          <text x="276" y="95">Q1</text>
+          <text x="296" y="95">Q0</text>
+        </g>
+
+        <!-- Vertical Distribution Buses -->
+        <line id="busINT" x1="148" y1="102" x2="148" y2="570" stroke="#2563eb" stroke-width="2.4"/>
+        <line id="busCLK" x1="175" y1="102" x2="175" y2="570" stroke="#dc2626" stroke-width="2.4"/>
+        <line id="busCLR" x1="202" y1="102" x2="202" y2="680" stroke="#dc2626" stroke-width="2.4"/>
+
+        <!-- Feedback Buses from Q2, Q2', Q1, Q0 -->
+        <polyline id="busQ2" points="732,162 732,718 238,718 238,102" fill="none" stroke="#2563eb" stroke-width="2"/>
+        <polyline id="busQ2n" points="722,216 722,728 258,728 258,102" fill="none" stroke="#dc2626" stroke-width="2"/>
+        <polyline id="busQ1" points="712,354 712,738 280,738 280,102" fill="none" stroke="#2563eb" stroke-width="2"/>
+        <polyline id="busQ0" points="702,546 702,748 300,748 300,102" fill="none" stroke="#2563eb" stroke-width="2"/>
+
+        <!-- 1. INPUT BLOCKS (Clickable in SVG!) -->
+        <!-- INT LOGICSTATE -->
+        <g transform="translate(26, 106)" style="cursor:pointer" onclick="toggleInt()">
+          <rect x="0" y="0" width="84" height="42" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+          <text x="10" y="16" font-family="monospace" font-size="10" fill="#1e40af">LOGICSTATE</text>
+          <text x="10" y="34" font-family="monospace" font-size="13" font-weight="bold" fill="#0f172a">INT</text>
+          <rect id="boxINT" x="50" y="7" width="26" height="28" rx="3" fill="#2563eb"/>
+          <text id="txtINT" x="63" y="26" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold" fill="#fff">0</text>
+          <line id="wINT" x1="84" y1="21" x2="122" y2="21" stroke="#2563eb" stroke-width="2.5"/>
+          <circle id="dotINT" cx="122" cy="21" r="4" fill="#2563eb"/>
+        </g>
+
+        <!-- CLOCK -->
+        <g transform="translate(26, 206)" style="cursor:pointer" onclick="pulseClock()">
+          <rect x="0" y="0" width="84" height="42" rx="4" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+          <text x="10" y="16" font-family="monospace" font-size="10" fill="#991b1b">CLOCK (↓)</text>
+          <text x="10" y="34" font-family="monospace" font-size="13" font-weight="bold" fill="#0f172a">CLK</text>
+          <rect id="boxCLK" x="50" y="7" width="26" height="28" rx="3" fill="#dc2626"/>
+          <text id="txtCLK" x="63" y="26" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold" fill="#fff">1</text>
+          <line id="wCLK" x1="84" y1="21" x2="149" y2="21" stroke="#dc2626" stroke-width="2.5"/>
+          <circle id="dotCLK" cx="149" cy="21" r="4" fill="#dc2626"/>
+        </g>
+
+        <!-- RESET CLR' -->
+        <g transform="translate(26, 306)" style="cursor:pointer" onclick="resetSystem()">
+          <rect x="0" y="0" width="84" height="42" rx="4" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+          <text x="10" y="16" font-family="monospace" font-size="10" fill="#991b1b">RESET (0)</text>
+          <text x="10" y="34" font-family="monospace" font-size="13" font-weight="bold" fill="#0f172a">CLR'</text>
+          <rect id="boxCLR" x="50" y="7" width="26" height="28" rx="3" fill="#dc2626"/>
+          <text id="txtCLR" x="63" y="26" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold" fill="#fff">1</text>
+          <line id="wCLR" x1="84" y1="21" x2="176" y2="21" stroke="#dc2626" stroke-width="2.5"/>
+          <circle id="dotCLR" cx="176" cy="21" r="4" fill="#dc2626"/>
+        </g>
+
+        <!-- 2. EXCITATION GATES -->
+        <!-- U4A: J2 = INT * Q1 * Q0 -->
+        <g transform="translate(382, 108)">
+          <text x="22" y="-6" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#1e293b">U4A: J2</text>
+          <path d="M 0,0 L 22,0 A 22,22 0 0 1 22,44 L 0,44 Z" fill="#fef9c3" stroke="#854d0e" stroke-width="2"/>
+          <text x="18" y="20" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#713f12">7408</text>
+          <text x="18" y="32" text-anchor="middle" font-family="monospace" font-size="9" fill="#713f12">AND3</text>
+        </g>
+        <line id="wJ2_in1" x1="148" y1="115" x2="382" y2="115" stroke="#2563eb" stroke-width="2"/>
+        <line id="wJ2_in2" x1="280" y1="130" x2="382" y2="130" stroke="#2563eb" stroke-width="2"/>
+        <line id="wJ2_in3" x1="300" y1="145" x2="382" y2="145" stroke="#2563eb" stroke-width="2"/>
+        <line id="wJ2_out" x1="426" y1="130" x2="554" y2="130" stroke="#2563eb" stroke-width="2.4"/>
+
+        <!-- K2 = INT -->
+        <line id="wK2_out" x1="148" y1="216" x2="554" y2="216" stroke="#2563eb" stroke-width="2.4"/>
+
+        <!-- U4B: J1, K1 = INT * Q0 -->
+        <g transform="translate(382, 300)">
+          <text x="22" y="-6" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#1e293b">U4B: J1,K1</text>
+          <path d="M 0,0 L 22,0 A 22,22 0 0 1 22,44 L 0,44 Z" fill="#fef9c3" stroke="#854d0e" stroke-width="2"/>
+          <text x="18" y="20" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#713f12">7408</text>
+          <text x="18" y="32" text-anchor="middle" font-family="monospace" font-size="9" fill="#713f12">AND2</text>
+        </g>
+        <line id="wJ1_in1" x1="148" y1="312" x2="382" y2="312" stroke="#2563eb" stroke-width="2"/>
+        <line id="wJ1_in2" x1="300" y1="332" x2="382" y2="332" stroke="#2563eb" stroke-width="2"/>
+        <line id="wJ1_out" x1="426" y1="322" x2="554" y2="322" stroke="#2563eb" stroke-width="2.4"/>
+        <polyline id="wK1_out" points="490,322 490,408 554,408" fill="none" stroke="#2563eb" stroke-width="2.4"/>
+
+        <!-- U3A (7404) + U4C (7408): J0 = INT * Q2' -->
+        <g transform="translate(310, 520)">
+          <text x="14" y="-5" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">U3A</text>
+          <polygon points="0,0 26,14 0,28" fill="#fef9c3" stroke="#854d0e" stroke-width="2"/>
+          <circle cx="30" cy="14" r="4" fill="#fef9c3" stroke="#854d0e" stroke-width="2"/>
+          <text x="11" y="17" text-anchor="middle" font-family="monospace" font-size="8" font-weight="bold" fill="#713f12">7404</text>
+        </g>
+        <line id="wQ2_not_in" x1="238" y1="534" x2="310" y2="534" stroke="#2563eb" stroke-width="2"/>
+        <line id="wQ2_not_out" x1="344" y1="534" x2="402" y2="534" stroke="#dc2626" stroke-width="2"/>
+
+        <g transform="translate(402, 502)">
+          <text x="22" y="-6" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#1e293b">U4C: J0</text>
+          <path d="M 0,0 L 22,0 A 22,22 0 0 1 22,44 L 0,44 Z" fill="#fef9c3" stroke="#854d0e" stroke-width="2"/>
+          <text x="18" y="20" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#713f12">7408</text>
+          <text x="18" y="32" text-anchor="middle" font-family="monospace" font-size="9" fill="#713f12">AND2</text>
+        </g>
+        <line id="wJ0_in1" x1="148" y1="514" x2="402" y2="514" stroke="#2563eb" stroke-width="2"/>
+        <line id="wJ0_out" x1="446" y1="524" x2="554" y2="524" stroke="#2563eb" stroke-width="2.4"/>
+
+        <!-- K0 = INT -->
+        <line id="wK0_out" x1="148" y1="600" x2="554" y2="600" stroke="#2563eb" stroke-width="2.4"/>
+
+        <!-- CLK & CLR' branches to all 3 Flip-Flops -->
+        <line id="wCLK_ff2" x1="175" y1="173" x2="546" y2="173" stroke="#dc2626" stroke-width="2"/>
+        <line id="wCLK_ff1" x1="175" y1="365" x2="546" y2="365" stroke="#dc2626" stroke-width="2"/>
+        <line id="wCLK_ff0" x1="175" y1="557" x2="546" y2="557" stroke="#dc2626" stroke-width="2"/>
+
+        <polyline id="wCLR_ff2" points="202,258 626,258 626,246" fill="none" stroke="#dc2626" stroke-width="2"/>
+        <polyline id="wCLR_ff1" points="202,450 626,450 626,438" fill="none" stroke="#dc2626" stroke-width="2"/>
+        <polyline id="wCLR_ff0" points="202,642 626,642 626,630" fill="none" stroke="#dc2626" stroke-width="2"/>
+
+        <!-- 3. THREE 7473 JK FLIP-FLOPS -->
+        <!-- FF2: Q2 (MSB) -->
+        <g transform="translate(554, 108)">
+          <!-- VCC & GND -->
+          <line x1="72" y1="-16" x2="72" y2="0" stroke="#dc2626" stroke-width="2"/>
+          <polygon points="66,-16 78,-16 72,-24" fill="#dc2626"/>
+          <text x="82" y="-13" font-family="monospace" font-size="10.5" font-weight="bold" fill="#dc2626">+5V (VCC)</text>
+          <text x="72" y="13" text-anchor="middle" font-family="monospace" font-size="9.5" fill="#991b1b">P4:VCC</text>
+
+          <rect x="0" y="0" width="144" height="132" rx="5" fill="#fef9c3" stroke="#854d0e" stroke-width="2.2"/>
+          <text x="72" y="25" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#713f12">U1A: 7473 (Q2)</text>
+          <text x="72" y="39" text-anchor="middle" font-family="sans-serif" font-size="9.5" fill="#92400e">JK FLIP-FLOP (MSB)</text>
+
+          <text x="8" y="26" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">J (14)</text>
+          <circle cx="-4" cy="65" r="4" fill="#fff" stroke="#0f172a" stroke-width="2"/>
+          <text x="8" y="69" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">CLK (1)</text>
+          <text x="8" y="112" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">K (3)</text>
+
+          <text x="136" y="58" text-anchor="end" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">(12) Q2</text>
+          <text x="136" y="112" text-anchor="end" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">(13) Q2'</text>
+
+          <circle cx="72" cy="136" r="4" fill="#fff" stroke="#0f172a" stroke-width="2"/>
+          <text x="72" y="126" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#0f172a">CLR' (2)</text>
+          <text x="138" y="126" text-anchor="end" font-family="monospace" font-size="9.5" font-weight="bold" fill="#1d4ed8">GND(11)</text>
+          <line x1="115" y1="132" x2="115" y2="148" stroke="#2563eb" stroke-width="2"/>
+          <line x1="103" y1="148" x2="127" y2="148" stroke="#2563eb" stroke-width="2"/>
+          <line x1="108" y1="153" x2="122" y2="153" stroke="#2563eb" stroke-width="2"/>
+
+          <!-- Center Digital State Box -->
+          <rect id="ff2Box" x="52" y="48" width="40" height="40" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+          <text id="ff2Val" x="72" y="75" text-anchor="middle" font-family="monospace" font-size="22" font-weight="bold" fill="#2563eb">0</text>
+        </g>
+
+        <!-- FF1: Q1 -->
+        <g transform="translate(554, 300)">
+          <line x1="72" y1="-16" x2="72" y2="0" stroke="#dc2626" stroke-width="2"/>
+          <polygon points="66,-16 78,-16 72,-24" fill="#dc2626"/>
+          <text x="82" y="-13" font-family="monospace" font-size="10.5" font-weight="bold" fill="#dc2626">+5V (VCC)</text>
+
+          <rect x="0" y="0" width="144" height="132" rx="5" fill="#fef9c3" stroke="#854d0e" stroke-width="2.2"/>
+          <text x="72" y="25" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#713f12">U1B: 7473 (Q1)</text>
+          <text x="72" y="39" text-anchor="middle" font-family="sans-serif" font-size="9.5" fill="#92400e">JK FLIP-FLOP (BIT 1)</text>
+
+          <text x="8" y="26" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">J (7)</text>
+          <circle cx="-4" cy="65" r="4" fill="#fff" stroke="#0f172a" stroke-width="2"/>
+          <text x="8" y="69" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">CLK (5)</text>
+          <text x="8" y="112" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">K (10)</text>
+
+          <text x="136" y="58" text-anchor="end" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">(9) Q1</text>
+          <text x="136" y="112" text-anchor="end" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">(8) Q1'</text>
+
+          <circle cx="72" cy="136" r="4" fill="#fff" stroke="#0f172a" stroke-width="2"/>
+          <text x="72" y="126" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#0f172a">CLR' (6)</text>
+          <text x="138" y="126" text-anchor="end" font-family="monospace" font-size="9.5" font-weight="bold" fill="#1d4ed8">GND(11)</text>
+          <line x1="115" y1="132" x2="115" y2="148" stroke="#2563eb" stroke-width="2"/>
+          <line x1="103" y1="148" x2="127" y2="148" stroke="#2563eb" stroke-width="2"/>
+          <line x1="108" y1="153" x2="122" y2="153" stroke="#2563eb" stroke-width="2"/>
+
+          <rect id="ff1Box" x="52" y="48" width="40" height="40" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+          <text id="ff1Val" x="72" y="75" text-anchor="middle" font-family="monospace" font-size="22" font-weight="bold" fill="#2563eb">0</text>
+        </g>
+
+        <!-- FF0: Q0 (LSB) -->
+        <g transform="translate(554, 492)">
+          <line x1="72" y1="-16" x2="72" y2="0" stroke="#dc2626" stroke-width="2"/>
+          <polygon points="66,-16 78,-16 72,-24" fill="#dc2626"/>
+          <text x="82" y="-13" font-family="monospace" font-size="10.5" font-weight="bold" fill="#dc2626">+5V (VCC)</text>
+
+          <rect x="0" y="0" width="144" height="132" rx="5" fill="#fef9c3" stroke="#854d0e" stroke-width="2.2"/>
+          <text x="72" y="25" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#713f12">U2A: 7473 (Q0)</text>
+          <text x="72" y="39" text-anchor="middle" font-family="sans-serif" font-size="9.5" fill="#92400e">JK FLIP-FLOP (LSB)</text>
+
+          <text x="8" y="26" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">J (14)</text>
+          <circle cx="-4" cy="65" r="4" fill="#fff" stroke="#0f172a" stroke-width="2"/>
+          <text x="8" y="69" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">CLK (1)</text>
+          <text x="8" y="112" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">K (3)</text>
+
+          <text x="136" y="58" text-anchor="end" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">(12) Q0</text>
+          <text x="136" y="112" text-anchor="end" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">(13) Q0'</text>
+
+          <circle cx="72" cy="136" r="4" fill="#fff" stroke="#0f172a" stroke-width="2"/>
+          <text x="72" y="126" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#0f172a">CLR' (2)</text>
+          <text x="138" y="126" text-anchor="end" font-family="monospace" font-size="9.5" font-weight="bold" fill="#1d4ed8">GND(11)</text>
+          <line x1="115" y1="132" x2="115" y2="148" stroke="#2563eb" stroke-width="2"/>
+          <line x1="103" y1="148" x2="127" y2="148" stroke="#2563eb" stroke-width="2"/>
+          <line x1="108" y1="153" x2="122" y2="153" stroke="#2563eb" stroke-width="2"/>
+
+          <rect id="ff0Box" x="52" y="48" width="40" height="40" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+          <text id="ff0Val" x="72" y="75" text-anchor="middle" font-family="monospace" font-size="22" font-weight="bold" fill="#2563eb">0</text>
+        </g>
+
+        <!-- ALU OUTPUT LOGIC PROBES (C2, C1, C0) -->
+        <!-- Probe C2 -->
+        <line id="wOutC2" x1="698" y1="162" x2="862" y2="162" stroke="#2563eb" stroke-width="2.5"/>
+        <g transform="translate(742, 130)">
+          <rect x="0" y="0" width="90" height="36" rx="5" fill="#fff" stroke="#1e293b" stroke-width="1.5"/>
+          <text x="10" y="14" font-family="monospace" font-size="10.5" font-weight="bold" fill="#0f172a">C2 (Q2)</text>
+          <circle id="ledC2" cx="22" cy="25" r="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+          <text id="txtC2" x="66" y="25" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold" fill="#2563eb">0</text>
+        </g>
+
+        <!-- Probe C1 -->
+        <line id="wOutC1" x1="698" y1="354" x2="862" y2="354" stroke="#2563eb" stroke-width="2.5"/>
+        <g transform="translate(742, 322)">
+          <rect x="0" y="0" width="90" height="36" rx="5" fill="#fff" stroke="#1e293b" stroke-width="1.5"/>
+          <text x="10" y="14" font-family="monospace" font-size="10.5" font-weight="bold" fill="#0f172a">C1 (Q1)</text>
+          <circle id="ledC1" cx="22" cy="25" r="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+          <text id="txtC1" x="66" y="25" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold" fill="#2563eb">0</text>
+        </g>
+
+        <!-- Probe C0 -->
+        <line id="wOutC0" x1="698" y1="546" x2="862" y2="546" stroke="#2563eb" stroke-width="2.5"/>
+        <g transform="translate(742, 514)">
+          <rect x="0" y="0" width="90" height="36" rx="5" fill="#fff" stroke="#1e293b" stroke-width="1.5"/>
+          <text x="10" y="14" font-family="monospace" font-size="10.5" font-weight="bold" fill="#0f172a">C0 (Q0)</text>
+          <circle id="ledC0" cx="22" cy="25" r="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+          <text id="txtC0" x="66" y="25" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold" fill="#2563eb">0</text>
+        </g>
+
+        <!-- 4. COMBINATIONAL 7-SEG DECODER -->
+        <g font-family="monospace" font-size="10.5" font-weight="bold" fill="#475569">
+          <text x="855" y="135">Q2</text>
+          <text x="875" y="205">Q1</text>
+          <text x="895" y="135">Q0</text>
+        </g>
+        <line id="decQ2" x1="862" y1="142" x2="862" y2="625" stroke="#2563eb" stroke-width="2"/>
+        <line id="decQ1" x1="882" y1="212" x2="882" y2="625" stroke="#2563eb" stroke-width="2"/>
+        <line id="decQ0" x1="902" y1="142" x2="902" y2="625" stroke="#2563eb" stroke-width="2"/>
+
+        <!-- Segment a = Q0' -->
+        <g transform="translate(952, 134)">
+          <text x="18" y="-6" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">U3B: a=Q0'</text>
+          <polygon points="0,0 26,14 0,28" fill="#fef9c3" stroke="#854d0e" stroke-width="1.8"/>
+          <circle cx="30" cy="14" r="4" fill="#fef9c3" stroke="#854d0e" stroke-width="1.8"/>
+          <text x="11" y="17" text-anchor="middle" font-family="monospace" font-size="8" font-weight="bold" fill="#713f12">7404</text>
+        </g>
+        <line id="wDecA_in" x1="902" y1="148" x2="952" y2="148" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecA_out" x1="986" y1="148" x2="1125" y2="148" stroke="#dc2626" stroke-width="2.2"/>
+
+        <!-- Segment b = Q1 XOR Q0 -->
+        <g transform="translate(976, 210)">
+          <text x="20" y="-6" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">U4D</text>
+          <path d="M 0,0 L 20,0 A 18,18 0 0 1 20,36 L 0,36 Z" fill="#fef9c3" stroke="#854d0e" stroke-width="1.8"/>
+          <text x="16" y="16" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="#713f12">7408</text>
+          <text x="16" y="27" text-anchor="middle" font-family="monospace" font-size="8" fill="#713f12">x2</text>
+        </g>
+        <g transform="translate(1044, 210)">
+          <text x="20" y="-6" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">U5A: b</text>
+          <path d="M 0,0 Q 12,18 0,36 L 18,36 Q 34,36 42,18 Q 34,0 18,0 Z" fill="#fef9c3" stroke="#854d0e" stroke-width="1.8"/>
+          <text x="18" y="21" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="#713f12">7432</text>
+        </g>
+        <line id="wDecB_1" x1="882" y1="220" x2="976" y2="220" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecB_2" x1="902" y1="236" x2="976" y2="236" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecB_mid" x1="1014" y1="228" x2="1048" y2="228" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecB_out" x1="1086" y1="228" x2="1125" y2="228" stroke="#2563eb" stroke-width="2.2"/>
+
+        <!-- Segment c = Q1 -->
+        <text x="1025" y="299" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">c = Q1 (Directo)</text>
+        <line id="wDecC_out" x1="882" y1="306" x2="1125" y2="306" stroke="#2563eb" stroke-width="2.2"/>
+
+        <!-- Segment d = Q1 + Q2'·Q0' -->
+        <g transform="translate(956, 368)">
+          <text x="20" y="-5" text-anchor="middle" font-family="monospace" font-size="9.5" font-weight="bold" fill="#1e293b">U4E: Q2'·Q0'</text>
+          <path d="M 0,0 L 20,0 A 18,18 0 0 1 20,36 L 0,36 Z" fill="#fef9c3" stroke="#854d0e" stroke-width="1.8"/>
+          <text x="16" y="21" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="#713f12">7408</text>
+        </g>
+        <g transform="translate(1044, 360)">
+          <text x="20" y="-6" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">U5B: d</text>
+          <path d="M 0,0 Q 12,18 0,36 L 18,36 Q 34,36 42,18 Q 34,0 18,0 Z" fill="#fef9c3" stroke="#854d0e" stroke-width="1.8"/>
+          <text x="18" y="21" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="#713f12">7432</text>
+        </g>
+        <line id="wDecD_q1" x1="882" y1="368" x2="1048" y2="368" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecD_q2" x1="862" y1="378" x2="956" y2="378" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecD_q0" x1="902" y1="394" x2="956" y2="394" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecD_mid" x1="994" y1="386" x2="1048" y2="386" stroke="#dc2626" stroke-width="2"/>
+        <line id="wDecD_out" x1="1086" y1="378" x2="1125" y2="378" stroke="#dc2626" stroke-width="2.2"/>
+
+        <!-- Segment e = Q2'·Q1' -->
+        <g transform="translate(956, 444)">
+          <text x="20" y="-6" text-anchor="middle" font-family="monospace" font-size="9.5" font-weight="bold" fill="#1e293b">U4F: e=Q2'·Q1'</text>
+          <path d="M 0,0 L 20,0 A 18,18 0 0 1 20,36 L 0,36 Z" fill="#fef9c3" stroke="#854d0e" stroke-width="1.8"/>
+          <text x="16" y="21" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="#713f12">7408</text>
+        </g>
+        <line id="wDecE_1" x1="862" y1="454" x2="956" y2="454" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecE_2" x1="882" y1="470" x2="956" y2="470" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecE_out" x1="994" y1="462" x2="1125" y2="462" stroke="#dc2626" stroke-width="2.2"/>
+
+        <!-- Segment f = Q0' -->
+        <g transform="translate(952, 524)">
+          <text x="18" y="-6" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">U3C: f=Q0'</text>
+          <polygon points="0,0 26,14 0,28" fill="#fef9c3" stroke="#854d0e" stroke-width="1.8"/>
+          <circle cx="30" cy="14" r="4" fill="#fef9c3" stroke="#854d0e" stroke-width="1.8"/>
+          <text x="11" y="17" text-anchor="middle" font-family="monospace" font-size="8" font-weight="bold" fill="#713f12">7404</text>
+        </g>
+        <line id="wDecF_in" x1="902" y1="538" x2="952" y2="538" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecF_out" x1="986" y1="538" x2="1125" y2="538" stroke="#dc2626" stroke-width="2.2"/>
+
+        <!-- Segment g = Q2'·Q1'·Q0' -->
+        <g transform="translate(956, 594)">
+          <text x="20" y="-6" text-anchor="middle" font-family="monospace" font-size="9.5" font-weight="bold" fill="#1e293b">U4G: g=Q2'·Q1'·Q0'</text>
+          <path d="M 0,0 L 20,0 A 18,18 0 0 1 20,36 L 0,36 Z" fill="#fef9c3" stroke="#854d0e" stroke-width="1.8"/>
+          <text x="16" y="21" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="#713f12">7408</text>
+        </g>
+        <line id="wDecG_1" x1="862" y1="602" x2="956" y2="602" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecG_2" x1="882" y1="612" x2="956" y2="612" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecG_3" x1="902" y1="622" x2="956" y2="622" stroke="#2563eb" stroke-width="2"/>
+        <line id="wDecG_out" x1="994" y1="612" x2="1125" y2="612" stroke="#dc2626" stroke-width="2.2"/>
+
+        <!-- Segment Probes a-g -->
+        <g font-family="monospace" font-size="11" font-weight="bold">
+          <rect x="1125" y="136" width="38" height="24" rx="3" fill="#fff" stroke="#334155"/><text id="pSegA" x="1144" y="152" text-anchor="middle" fill="#dc2626">a:1</text>
+          <rect x="1125" y="216" width="38" height="24" rx="3" fill="#fff" stroke="#334155"/><text id="pSegB" x="1144" y="232" text-anchor="middle" fill="#2563eb">b:0</text>
+          <rect x="1125" y="294" width="38" height="24" rx="3" fill="#fff" stroke="#334155"/><text id="pSegC" x="1144" y="310" text-anchor="middle" fill="#2563eb">c:0</text>
+          <rect x="1125" y="366" width="38" height="24" rx="3" fill="#fff" stroke="#334155"/><text id="pSegD" x="1144" y="382" text-anchor="middle" fill="#dc2626">d:1</text>
+          <rect x="1125" y="450" width="38" height="24" rx="3" fill="#fff" stroke="#334155"/><text id="pSegE" x="1144" y="466" text-anchor="middle" fill="#dc2626">e:1</text>
+          <rect x="1125" y="526" width="38" height="24" rx="3" fill="#fff" stroke="#334155"/><text id="pSegF" x="1144" y="542" text-anchor="middle" fill="#dc2626">f:1</text>
+          <rect x="1125" y="600" width="38" height="24" rx="3" fill="#fff" stroke="#334155"/><text id="pSegG" x="1144" y="616" text-anchor="middle" fill="#dc2626">g:1</text>
+        </g>
+
+        <!-- 5. 7-SEGMENT COMMON ANODE DISPLAY -->
+        <g transform="translate(1176, 102)">
+          <line x1="88" y1="-16" x2="88" y2="0" stroke="#dc2626" stroke-width="2.2"/>
+          <polygon points="82,-16 94,-16 88,-24" fill="#dc2626"/>
+          <text x="98" y="-12" font-family="monospace" font-size="11" font-weight="bold" fill="#dc2626">+5V (COM)</text>
+
+          <rect x="0" y="0" width="176" height="534" rx="8" fill="#1e293b" stroke="#0f172a" stroke-width="2.5"/>
+          <text x="88" y="24" text-anchor="middle" font-family="monospace" font-size="11.5" font-weight="bold" fill="#f8fafc">U6: 7SEG-COM-ANODE</text>
+          <text x="88" y="39" text-anchor="middle" font-family="sans-serif" font-size="9.5" fill="#94a3b8">ACTIVO EN BAJO (0 = ON)</text>
+
+          <!-- Pin labels -->
+          <g font-family="monospace" font-size="10.5" font-weight="bold" fill="#cbd5e1">
+            <text x="8" y="50">a</text>
+            <text x="8" y="130">b</text>
+            <text x="8" y="208">c</text>
+            <text x="8" y="280">d</text>
+            <text x="8" y="364">e</text>
+            <text x="8" y="440">f</text>
+            <text x="8" y="514">g</text>
+          </g>
+
+          <!-- Display Bezel -->
+          <rect x="30" y="132" width="116" height="218" rx="8" fill="#090d16" stroke="#334155" stroke-width="2"/>
+          <!-- 7 Segments (skewed slightly like real 7-seg) -->
+          <g transform="translate(46, 150) skewX(-5)">
+            <!-- a -->
+            <polygon id="seg_a" points="14,0 74,0 64,12 24,12" fill="#1e293b"/>
+            <!-- b -->
+            <polygon id="seg_b" points="78,4 88,14 84,82 72,72" fill="#dc2626"/>
+            <!-- c -->
+            <polygon id="seg_c" points="72,94 84,86 80,156 68,144" fill="#dc2626"/>
+            <!-- d -->
+            <polygon id="seg_d" points="16,158 64,158 54,146 26,146" fill="#1e293b"/>
+            <!-- e -->
+            <polygon id="seg_e" points="8,86 20,94 16,144 4,156" fill="#1e293b"/>
+            <!-- f -->
+            <polygon id="seg_f" points="12,14 22,24 18,72 6,82" fill="#1e293b"/>
+            <!-- g -->
+            <polygon id="seg_g" points="18,78 70,78 78,84 68,90 16,90 10,84" fill="#1e293b"/>
+            <!-- dp -->
+            <circle cx="94" cy="154" r="5" fill="#1e293b"/>
+          </g>
+
+          <!-- Status Readout inside Display Module -->
+          <text x="88" y="378" text-anchor="middle" font-family="sans-serif" font-size="10.5" font-weight="bold" fill="#94a3b8">OPERACIÓN ALU</text>
+          <text id="dispChar" x="88" y="414" text-anchor="middle" font-family="monospace" font-size="30" font-weight="bold" fill="#38bdf8">I</text>
+          <text id="dispOpName" x="88" y="438" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="#f8fafc">INACTIVO</text>
+          <text id="dispBits" x="88" y="462" text-anchor="middle" font-family="monospace" font-size="11.5" font-weight="bold" fill="#fbbf24">C2 C1 C0 = 000</text>
+          <text id="dispValid" x="88" y="482" text-anchor="middle" font-family="monospace" font-size="10.5" font-weight="bold" fill="#4ade80">ESTADO VÁLIDO (S_0)</text>
+        </g>
+
+        <!-- Engineering Title Block (Bottom Right) -->
+        <g transform="translate(990, 704)" font-family="sans-serif" font-size="10.5">
+          <rect x="0" y="0" width="372" height="68" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.5"/>
+          <line x1="0" y1="23" x2="372" y2="23" stroke="#1e3a8a" stroke-width="1.2"/>
+          <line x1="0" y1="46" x2="372" y2="46" stroke="#1e3a8a" stroke-width="1.2"/>
+          <line x1="255" y1="23" x2="255" y2="68" stroke="#1e3a8a" stroke-width="1.2"/>
+          <text x="10" y="15" font-weight="bold" fill="#1e3a8a">PROYECTO: UNIDAD DE CONTROL ALU 5 BITS (CI 7473)</text>
+          <text x="10" y="38" fill="#0f172a">DISEÑO SÍNCRONO • DISPLAY ÁNODO COMÚN</text>
+          <text x="265" y="38" font-family="monospace" font-weight="bold" fill="#0f172a">CLK: FLANCO ↓</text>
+          <text x="10" y="61" fill="#0f172a">VALIDACIÓN Y SIMULACIÓN DE LABORATORIO</text>
+          <text x="265" y="61" font-family="monospace" font-weight="bold" fill="#0f172a">HOJA 1 DE 1</text>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Right Control & Evidence Panel -->
+    <aside class="sidebar">
+      <div class="card">
+        <h2>Controles de Simulación</h2>
+        <div class="control-row">
+          <span>Interruptor Control (<strong>INT</strong>):</span>
+          <button id="sideIntBtn" onclick="toggleInt()">INT = 0 (Mantener)</button>
+        </div>
+        <div class="control-row">
+          <span>Reloj Síncrono (<strong>CLK ↓</strong>):</span>
+          <button class="btn-clk" onclick="pulseClock()">Aplicar Flanco ↓</button>
+        </div>
+        <div class="control-row">
+          <span>Reset Asíncrono (<strong>CLR'</strong>):</span>
+          <button class="btn-danger" onclick="resetSystem()">Reiniciar (000)</button>
+        </div>
+        <div class="legend">
+          <span><i class="dot" style="background:#ef4444"></i>1 Lógico (+5V)</span>
+          <span><i class="dot" style="background:#3b82f6"></i>0 Lógico (GND)</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Inyección de Ruido Eléctrico</h2>
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:6px;">
+          Fuerza un estado no válido (<code>101</code>, <code>110</code>, <code>111</code>). Con <strong>INT=1</strong>, pulsa <strong>CLK ↓</strong> para verificar la autorrecuperación en 1 ciclo:
+        </p>
+        <div class="noise-grid">
+          <button class="btn-warn" onclick="injectNoise(1,0,1)">101</button>
+          <button class="btn-warn" onclick="injectNoise(1,1,0)">110</button>
+          <button class="btn-warn" onclick="injectNoise(1,1,1)">111</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Guía de Fotos del Informe</h2>
+        <div class="preset-list">
+          <button class="preset-btn active" id="p1" onclick="applyPreset(1, 0,0,0, 0)">Foto 1: Estado S_0 (000) • INT=0 • I</button>
+          <button class="preset-btn" id="p2" onclick="applyPreset(2, 0,0,1, 1)">Foto 2: Estado S_1 (001) • INT=1 • S</button>
+          <button class="preset-btn" id="p3" onclick="applyPreset(3, 0,1,0, 1)">Foto 3: Estado S_2 (010) • INT=1 • r</button>
+          <button class="preset-btn" id="p4" onclick="applyPreset(4, 0,1,1, 1)">Foto 4: Estado S_3 (011) • INT=1 • P</button>
+          <button class="preset-btn" id="p5" onclick="applyPreset(5, 1,0,0, 1)">Foto 5: Estado S_4 (100) • INT=1 • d</button>
+          <button class="preset-btn" id="p6" onclick="applyPreset(6, 0,0,0, 1)">Foto 6: Reinicio S_0 (000) • INT=1 • I</button>
+          <button class="preset-btn" id="p7" onclick="applyPreset(7, 0,1,0, 0)">Foto 7: Retención S_2 (010) • INT=0 • r</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Ecuaciones Implementadas</h2>
+        <div class="eq-box">
+          <strong>Excitación JK (CI 7473):</strong><br/>
+          J2 = INT·Q1·Q0 &nbsp;|&nbsp; K2 = INT<br/>
+          J1 = INT·Q0 &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp; K1 = INT·Q0<br/>
+          J0 = INT·Q2' &nbsp;&nbsp;&nbsp;|&nbsp; K0 = INT<br/><br/>
+          <strong>Decodificador Ánodo Común (0=ON):</strong><br/>
+          a = f = Q0' &nbsp;&nbsp;|&nbsp; b = Q1 ⊕ Q0 &nbsp;|&nbsp; c = Q1<br/>
+          d = Q1 + Q2'·Q0' &nbsp;|&nbsp; e = Q2'·Q1'<br/>
+          g = Q2'·Q1'·Q0'
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    let Q2 = 0, Q1 = 0, Q0 = 0;
+    let INT = 0;
+    let photoIndex = 1;
+
+    const HIGH = '#dc2626';
+    const LOW = '#2563eb';
+    const SEG_ON = '#dc2626';
+    const SEG_OFF = '#1e293b';
+
+    const STATE_META = {
+      '000': { code: 'S_0', name: 'INACTIVO', char: 'I', valid: true },
+      '001': { code: 'S_1', name: 'SUMA', char: 'S', valid: true },
+      '010': { code: 'S_2', name: 'RESTA', char: 'r', valid: true },
+      '011': { code: 'S_3', name: 'PRODUCTO', char: 'P', valid: true },
+      '100': { code: 'S_4', name: 'DIVISIÓN', char: 'd', valid: true },
+      '101': { code: 'S_ERR', name: 'NO VÁLIDO (RUIDO)', char: 'E', valid: false },
+      '110': { code: 'S_ERR', name: 'NO VÁLIDO (RUIDO)', char: 'E', valid: false },
+      '111': { code: 'S_ERR', name: 'NO VÁLIDO (RUIDO)', char: 'E', valid: false }
+    };
+
+    function setWire(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.setAttribute('stroke', val ? HIGH : LOW);
+    }
+
+    function updateUI() {
+      const bits = `${Q2}${Q1}${Q0}`;
+      const meta = STATE_META[bits];
+      const Q2n = Q2 ^ 1, Q1n = Q1 ^ 1, Q0n = Q0 ^ 1;
+
+      // Excitation logic
+      const J2 = INT & Q1 & Q0;
+      const K2 = INT;
+      const J1 = INT & Q0;
+      const K1 = INT & Q0;
+      const J0 = INT & Q2n;
+      const K0 = INT;
+
+      // Common-anode 7-seg equations (0 = ON)
+      const a = Q0n;
+      const b = Q1 ^ Q0;
+      const c = Q1;
+      const d = Q1 | (Q2n & Q0n);
+      const e = Q2n & Q1n;
+      const f = Q0n;
+      const g = Q2n & Q1n & Q0n;
+
+      // Update caption & badges
+      document.getElementById('svgCaption').textContent =
+        `Foto ${photoIndex}: Estado ${meta.code} (Q2 Q1 Q0 = ${bits}), Entrada INT=${INT}, Salidas C2 C1 C0 = ${bits}`;
+      document.getElementById('svgTopBadge').textContent =
+        `ESTADO: ${meta.code} • ${meta.name} (${meta.char})`;
+
+      // Update buttons
+      document.getElementById('lblIntBtn').textContent = INT;
+      document.getElementById('sideIntBtn').textContent = INT ? 'INT = 1 (Avanzar)' : 'INT = 0 (Mantener)';
+
+      // Input blocks
+      document.getElementById('txtINT').textContent = INT;
+      document.getElementById('boxINT').setAttribute('fill', INT ? HIGH : LOW);
+      document.getElementById('dotINT').setAttribute('fill', INT ? HIGH : LOW);
+      setWire('wINT', INT);
+      setWire('busINT', INT);
+
+      // Buses Q2, Q2', Q1, Q0
+      setWire('busQ2', Q2);
+      setWire('busQ2n', Q2n);
+      setWire('busQ1', Q1);
+      setWire('busQ0', Q0);
+
+      // Excitation wires
+      setWire('wJ2_in1', INT); setWire('wJ2_in2', Q1); setWire('wJ2_in3', Q0); setWire('wJ2_out', J2);
+      setWire('wK2_out', K2);
+      setWire('wJ1_in1', INT); setWire('wJ1_in2', Q0); setWire('wJ1_out', J1); setWire('wK1_out', K1);
+      setWire('wQ2_not_in', Q2); setWire('wQ2_not_out', Q2n);
+      setWire('wJ0_in1', INT); setWire('wJ0_out', J0);
+      setWire('wK0_out', K0);
+
+      // Flip-flop boxes
+      [['ff2', Q2], ['ff1', Q1], ['ff0', Q0]].forEach(([p, v]) => {
+        document.getElementById(p + 'Val').textContent = v;
+        document.getElementById(p + 'Val').setAttribute('fill', v ? HIGH : LOW);
+        document.getElementById(p + 'Box').setAttribute('fill', v ? '#fef2f2' : '#eff6ff');
+        document.getElementById(p + 'Box').setAttribute('stroke', v ? HIGH : LOW);
+      });
+
+      // Output probes C2, C1, C0
+      [['C2', Q2], ['C1', Q1], ['C0', Q0]].forEach(([p, v]) => {
+        setWire('wOut' + p, v);
+        document.getElementById('txt' + p).textContent = v;
+        document.getElementById('txt' + p).setAttribute('fill', v ? HIGH : LOW);
+        document.getElementById('led' + p).setAttribute('fill', v ? HIGH : '#dbeafe');
+        document.getElementById('led' + p).setAttribute('stroke', v ? '#991b1b' : LOW);
+      });
+
+      // Decoder buses & wires
+      setWire('decQ2', Q2); setWire('decQ1', Q1); setWire('decQ0', Q0);
+      setWire('wDecA_in', Q0); setWire('wDecA_out', a);
+      setWire('wDecB_1', Q1); setWire('wDecB_2', Q0); setWire('wDecB_mid', b); setWire('wDecB_out', b);
+      setWire('wDecC_out', c);
+      setWire('wDecD_q1', Q1); setWire('wDecD_q2', Q2n); setWire('wDecD_q0', Q0n);
+      setWire('wDecD_mid', Q2n & Q0n); setWire('wDecD_out', d);
+      setWire('wDecE_1', Q2n); setWire('wDecE_2', Q1n); setWire('wDecE_out', e);
+      setWire('wDecF_in', Q0); setWire('wDecF_out', f);
+      setWire('wDecG_1', Q2n); setWire('wDecG_2', Q1n); setWire('wDecG_3', Q0n); setWire('wDecG_out', g);
+
+      // Segment probes & active-low LEDs (0 = ON!)
+      const segMap = [['A', 'a', a], ['B', 'b', b], ['C', 'c', c], ['D', 'd', d], ['E', 'e', e], ['F', 'f', f], ['G', 'g', g]];
+      segMap.forEach(([U, l, val]) => {
+        const probe = document.getElementById('pSeg' + U);
+        probe.textContent = `${l}:${val}`;
+        probe.setAttribute('fill', val ? HIGH : LOW);
+        document.getElementById('seg_' + l).setAttribute('fill', val === 0 ? SEG_ON : SEG_OFF);
+      });
+
+      // Display Status Text
+      document.getElementById('dispChar').textContent = meta.char;
+      document.getElementById('dispOpName').textContent = meta.name;
+      document.getElementById('dispBits').textContent = `C2 C1 C0 = ${bits}`;
+      const validEl = document.getElementById('dispValid');
+      validEl.textContent = meta.valid ? `ESTADO VÁLIDO (${meta.code})` : '⚠ ESTADO NO VÁLIDO (RUIDO)';
+      validEl.setAttribute('fill', meta.valid ? '#4ade80' : '#fbbf24');
+    }
+
+    function toggleInt() {
+      INT ^= 1;
+      updateUI();
+    }
+
+    function pulseClock() {
+      // Visual falling edge animation on CLK
+      document.getElementById('txtCLK').textContent = '0';
+      document.getElementById('boxCLK').setAttribute('fill', LOW);
+      setWire('wCLK', 0); setWire('busCLK', 0);
+      setWire('wCLK_ff2', 0); setWire('wCLK_ff1', 0); setWire('wCLK_ff0', 0);
+
+      // Compute next state on falling edge
+      const Q2n = Q2 ^ 1;
+      const J2 = INT & Q1 & Q0, K2 = INT;
+      const J1 = INT & Q0,      K1 = INT & Q0;
+      const J0 = INT & Q2n,     K0 = INT;
+
+      const nQ2 = (J2 & (Q2 ^ 1)) | ((K2 ^ 1) & Q2);
+      const nQ1 = (J1 & (Q1 ^ 1)) | ((K1 ^ 1) & Q1);
+      const nQ0 = (J0 & (Q0 ^ 1)) | ((K0 ^ 1) & Q0);
+
+      Q2 = nQ2; Q1 = nQ1; Q0 = nQ0;
+      photoIndex++;
+      updateUI();
+
+      setTimeout(() => {
+        document.getElementById('txtCLK').textContent = '1';
+        document.getElementById('boxCLK').setAttribute('fill', HIGH);
+        setWire('wCLK', 1); setWire('busCLK', 1);
+        setWire('wCLK_ff2', 1); setWire('wCLK_ff1', 1); setWire('wCLK_ff0', 1);
+      }, 180);
+    }
+
+    function resetSystem() {
+      document.getElementById('txtCLR').textContent = '0';
+      document.getElementById('boxCLR').setAttribute('fill', LOW);
+      setWire('wCLR', 0); setWire('busCLR', 0);
+      Q2 = 0; Q1 = 0; Q0 = 0;
+      photoIndex = 1;
+      updateUI();
+      setTimeout(() => {
+        document.getElementById('txtCLR').textContent = '1';
+        document.getElementById('boxCLR').setAttribute('fill', HIGH);
+        setWire('wCLR', 1); setWire('busCLR', 1);
+      }, 220);
+    }
+
+    function injectNoise(b2, b1, b0) {
+      Q2 = b2; Q1 = b1; Q0 = b0;
+      updateUI();
+    }
+
+    function applyPreset(idx, b2, b1, b0, intVal) {
+      photoIndex = idx;
+      Q2 = b2; Q1 = b1; Q0 = b0;
+      INT = intVal;
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById('p' + idx);
+      if (activeBtn) activeBtn.classList.add('active');
+      updateUI();
+    }
+
+    function exportPNG() {
+      const svg = document.getElementById('schematic');
+      const serializer = new XMLSerializer();
+      const svgStr = serializer.serializeToString(svg);
+      const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 2070;
+        canvas.height = 1185;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        const link = document.createElement('a');
+        link.download = `Foto_${photoIndex}_Estado_${Q2}${Q1}${Q0}_INT_${INT}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      };
+      img.src = url;
+    }
+
+    updateUI();
+  </script>
+</body>
+</html>
